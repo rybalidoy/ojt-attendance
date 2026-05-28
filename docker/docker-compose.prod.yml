@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api/Dockerfile.prod
+    container_name: ojt-api-prod
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: ${DB_HOST:-127.0.0.1}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-api}
+      DB_USERNAME: ${DB_USERNAME:-ryan}
+      DB_PASSWORD: ${DB_PASSWORD:-ryan1234}
+
+    restart: always
+    networks:
+      - ojt-network-prod
+      - npm_network
+
+  client:
+    build:
+      context: ..
+      dockerfile: docker/client/Dockerfile.prod
+    container_name: ojt-client-prod
+    restart: always
+    networks:
+      - ojt-network-prod
+      - npm_network
+
+networks:
+  ojt-network-prod:
+    driver: bridge
+  npm_network:
+    name: npm_default
+    external: true
+
+

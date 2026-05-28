@@ -1,0 +1,5 @@
+# Defaulting to development setup.
+# For production, run: docker compose -f docker/docker-compose.prod.yml up --build
+
+include:
+  - path: docker/docker-compose.dev.yml

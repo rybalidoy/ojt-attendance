@@ -1,0 +1,36 @@
+FROM php:8.4-cli
+
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libpq-dev \
+    libzip-dev
+
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd mbstring exif pcntl sockets
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install Node.js (needed for Vite and concurrently in dev)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y nodejs
+
+
+WORKDIR /var/www/html
+
+EXPOSE 8000 5173
+
+# We will run composer install, npm install, and start the dev script via entrypoint/command
+CMD ["sh", "-c", "composer install --no-scripts && php artisan package:discover --ansi && npm install && php artisan key:generate --no-interaction && npm run dev"]
+

@@ -1,0 +1,80 @@
+# ==========================================
+# Stage 1: Build Assets & Dependencies
+# ==========================================
+FROM php:8.4-cli AS builder
+
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libpq-dev \
+    libzip-dev
+
+# Install PHP extensions for building/composer
+RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd mbstring
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y nodejs
+
+
+WORKDIR /app
+
+# Copy API files
+COPY ./api /app
+
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Install Node dependencies & build front-end assets
+RUN npm install --ignore-scripts && npm run build
+
+# ==========================================
+# Stage 2: Production Environment
+# ==========================================
+FROM php:8.4-fpm
+
+
+# Install system dependencies (including Nginx and Supervisor)
+RUN apt-get update && apt-get install -y \
+    nginx \
+    supervisor \
+    libpq-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev
+
+# Clear apt cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd mbstring exif pcntl sockets
+
+WORKDIR /var/www/html
+
+# Copy application files from builder stage
+COPY --from=builder /app /var/www/html
+
+# Configure permissions for storage/bootstrap cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Copy configurations
+COPY ./docker/api/nginx.conf /etc/nginx/sites-available/default
+COPY ./docker/api/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+EXPOSE 80
+
+# Run Supervisor to manage PHP-FPM and Nginx
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

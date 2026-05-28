@@ -1,0 +1,9 @@
+FROM oven/bun:latest
+
+WORKDIR /app
+
+# Expose Metro bundler port and web server port
+EXPOSE 8081
+
+# Command will run bun install & bun run web
+CMD ["sh", "-c", "bun install && bun run web"]

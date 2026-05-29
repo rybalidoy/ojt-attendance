@@ -6,11 +6,8 @@ services:
     container_name: ojt-api-dev
     volumes:
       - ../api:/var/www/html
-      - /var/www/html/vendor
-      - /var/www/html/node_modules
     ports:
       - "8000:8000"
-      - "5173:5173"
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
@@ -25,6 +22,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - ojt-network-dev
+    command: php artisan serve --host=0.0.0.0 --port=8000
 
   client:
     build:
@@ -42,4 +40,3 @@ services:
 networks:
   ojt-network-dev:
     driver: bridge
-

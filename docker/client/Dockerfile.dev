@@ -1,9 +1,12 @@
 FROM oven/bun:latest
 
+# Install ADB and clean up package lists to keep the image slim
+RUN apt-get update && apt-get install -y android-tools-adb && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Expose Metro bundler port and web server port
+# Expose Metro bundler port
 EXPOSE 8081
 
-# Command will run bun install & bun run web
-CMD ["sh", "-c", "bun install && bun run web"]
+# Command will run bun install & bun run android
+CMD ["sh", "-c", "bun install && bun expo start"]

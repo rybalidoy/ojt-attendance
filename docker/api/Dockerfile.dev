@@ -1,7 +1,5 @@
-FROM php:8.4-cli
+FROM php:8.4-fpm
 
-
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -11,26 +9,31 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
-    libzip-dev
+    libzip-dev \
+    libicu-dev \
+    ca-certificates && \
+    update-ca-certificates
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd mbstring exif pcntl sockets
+RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd sockets zip intl
 
-# Install Composer
+# Get latest composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Node.js (needed for Vite and concurrently in dev)
-RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
-    && apt-get install -y nodejs
-
-
+# Set working directory
 WORKDIR /var/www/html
 
-EXPOSE 8000 5173
+# Copy existing application directory contents
+COPY api/ /var/www/html
 
-# We will run composer install, npm install, and start the dev script via entrypoint/command
-CMD ["sh", "-c", "composer install --no-scripts && php artisan package:discover --ansi && npm install && php artisan key:generate --no-interaction && npm run dev"]
+# Install dependencies
+RUN composer install --no-interaction --optimize-autoloader --no-scripts
 
+# Export port 8000
+EXPOSE 8000
+
+# Default command
+CMD ["php-fpm"]
